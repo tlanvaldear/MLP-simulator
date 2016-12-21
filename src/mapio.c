@@ -120,8 +120,96 @@ void map_save (char *filename)
 
 void map_load (char *filename)
 {
-  // TODO
-  exit_with_error ("Map load is not yet implemented\n");
+  int mapWidth = 0;
+  int mapHeight = 0;
+  int numberOfDifferentObjects = 0;
+
+  //on ouvre le fichier de sauvegarde de map
+  int fileDescriptor = open(filename, O_RDONLY);
+  verification(fileDescriptor != -1, "[map_load]open");
+
+  //on récuềre la largeur
+  int verifRead = read(fileDescriptor, &mapWidth, sizeof(int));
+  verification(verifRead != -1, "[map_load]read_width");
+
+  //on récupère la hauteur
+  verifRead = read(fileDescriptor, &mapHeight, sizeof(int));
+  verification(verifRead != -1, "[map_load]read_height");
+
+  //on alloue la carte
+  map_allocate (mapWidth, mapHeight);
+
+  //on récuềre le nombre d'objet différent
+  verifRead = read(fileDescriptor, &numberOfDifferentObjects, sizeof(int));
+  verification(verifRead != -1, "[map_load]read_numberObjects");
+  
+  //on récupère les types d'objets de chaque case
+  int type = -1;
+  for(int x = 0; x < mapWidth; x++) {
+    for(int y = 0; y < mapHeight; y++) {
+      verifRead = read(fileDescriptor, &type, sizeof(int));
+      verification(verifRead != -1, "[map_load]read_type");
+      map_set(x, y, type);
+    }
+  }
+
+ //on précise le nombre d'objets différent sur la carte
+  map_object_begin (numberOfDifferentObjects);
+
+  char * pathPngFile = "";
+  int frames;
+  int properties[4];
+
+  while(verifRead > 0) {
+    char * fillPathPngFile;
+    //on récupère le nom des fichiers png (avec le remplissage)
+    verifRead = read(fileDescriptor, &fillPathPngFile, sizeof(char*));
+    verification(verifRead != -1, "[map_load]read_pathPngFile");
+
+    //on enleve le remplissage (15 est le minimum de caractères)
+    for(int i = 0; i < strlen(fillPathPngFile); i++) {
+      if(!(fillPathPngFile[i] == '0'))
+        pathPngFile += fillPathPngFile[i];
+    }
+
+    //on récupère le nombre de frames de chaque objet
+    verifRead = read(fileDescriptor, &frames, sizeof(int));
+    verification(verifRead != -1, "[map_load]read_frames");
+
+    //on récupère les propriétés de chaque objet
+    for(int i = 0; i < 4; i++) {
+      verifRead = read(fileDescriptor, &properties[i], sizeof(int));
+      verification(verifRead != -1, "[map_load]read_properties");
+    }
+
+    //on retire le remplissage et on donne les valeurs aux unsigned à mettre dans la fonction map_object_add
+    unsigned propertiesSolid = 0;
+
+    switch(properties[0]) {
+      case 0:
+        propertiesSolid = MAP_OBJECT_AIR;
+        break;
+
+      case 1:
+        propertiesSolid = MAP_OBJECT_SEMI_SOLID;
+        break;
+
+      case 2:
+        propertiesSolid = MAP_OBJECT_SOLID;
+        break;
+    }
+
+    if(properties[1] == 1)
+      map_object_add(pathPngFile, frames, (propertiesSolid | MAP_OBJECT_DESTRUCTIBLE));
+    else if(properties[2] == 1)
+      map_object_add(pathPngFile, frames, (propertiesSolid | MAP_OBJECT_COLLECTIBLE));
+    else if(properties[2] == 1)
+      map_object_add(pathPngFile, frames, (propertiesSolid | MAP_OBJECT_GENERATOR));
+    else
+      map_object_add(pathPngFile, frames, propertiesSolid);
+  }
+  //on finit les appels au objet 
+  map_object_end ();
 }
 
 #endif
