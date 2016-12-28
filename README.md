@@ -1,19 +1,17 @@
 # MLP-simulator
 
-Pour que l'on soit tous d'accord sur la sauvegarde (et le chargement) des maps:
-Ce qui me semble bien : (fichier type)
--Largeur
--Hauteur
--Nombre d'objets différents sur la map
--Matrice d'entier = contenu de chaque case de la map (exemple)
-0 0 0 0 0 0 0
-0 0 0 0 0 0 0
-1 1 1 1 1 1 1 
--Type d'objet
-NomFichierImage NbSprites Propriétés(type 1)
-NomFichierImage NBSprites Propriétés(type 2)
-...(pour tous les types présents)
+J'ai modifié la structure du fichier de sauvegarde, il ressemble à ça:
+- Largeur (int),
+- Hauteur (int),
+- Nombre d'objets disponibles (int),
+- Matrice de la map (largeur x hauteur d'ints),
+- Longueur du chemin vers le PNG. (int),
+- Chemin vers le PNG ((longueur du chemin +1) chars)(Ne pas oublier le caractère de fin de chaîne, merci le C :trollface:),
+- Nombre de frames (unsigned),
+- Les propriétés du type d'objet (4 ints)
 
-Pour le nom comme le nb de caractères est variable, on prend la taille max et si c'est plus court on comble avec du blanc (ou des zéros)
-Le nombre de sprites assez simple, c'est juste un entier
-Les propriétès sont variables suivant l'objet, c'est des chaînes de caractères
+TO DO LIST:
+- [x] Map_save()
+- [x] Map_load()
+- Je vais rajouter les autres :ok_hand: :wink:
+  
