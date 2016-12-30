@@ -54,7 +54,7 @@ int main (int argc, char** argv)
 		close(fd);
 		return 0;
 	}
-	else if (strcmp(argv[2], "--setwidth") == 0){ /*Incomplet, manque l'écriture de 1 sur la dernière colonne ! */
+	else if (strcmp(argv[2], "--setwidth") == 0){
 		if (argc != 4){
 			fprintf(stderr, "Please enter a single number for width."); return 1;
 		}
@@ -188,7 +188,137 @@ int main (int argc, char** argv)
 		return 0;
 	}
 	else if (strcmp(argv[2], "--setheight") == 0){
-		//TODO
+		if (argc != 4){
+			fprintf(stderr, "Please enter a single number for height."); return 1;
+		}
+		int new_height = atoi(argv[3]);
+		if(new_height < MIN_HEIGHT || new_height > MAX_HEIGHT){
+			fprintf(stderr, "Minimum width : 12\n"
+					"Maximum width : 20\n"
+					"Please enter a correct height.");
+			return 1;
+		}
+
+		int fd = open(argv[1],O_RDONLY);
+		verification(fd != -1, "[--setheight] open");
+
+		int width;
+		int old_height;
+		int nb_objects;
+
+		int verif_read;
+
+		verif_read = read(fd, &width, sizeof(int));
+		verification(verif_read != -1, "[--setwidth] read old width");
+
+		verif_read = read(fd, &old_height, sizeof(int));
+		verification(verif_read != -1, "[--setwidth] read height");
+
+		verif_read = read(fd, &nb_objects, sizeof(int));
+		verification(verif_read != -1, "[--setwidth] read nb objects");
+
+
+		int new_matrix[width][new_height];
+		int old_matrix[width][old_height];
+		int type;
+
+		for (int y = 0; y < new_height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				new_matrix[x][y] = -1;
+			}
+		}
+
+		for (int y = 0; y < old_height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				verif_read = read(fd, &type, sizeof(int));
+				verification(verif_read != -1, "[--setwidth] read matrix");
+				old_matrix[x][y] = type;
+			}
+		}
+
+		int offset_height = new_height - old_height;
+		if (old_height <= new_height) {
+			for (int y = 0; y < old_height; ++y) {
+				for (int x = 0; x < width; ++x) {
+					new_matrix[x][y + offset_height] = old_matrix[x][y];
+				}
+			}
+			for (int y = 0; y < offset_height; ++y) {
+				new_matrix[0][y] = 1;
+				new_matrix[width - 1][y] = 1;
+			}
+		} else {
+			for (int y = 0; y < new_height; ++y) {
+				for (int x = 0; x < width; ++x) {
+					new_matrix[x][y] = old_matrix[x][y+offset_height];
+				}
+			}
+		}
+
+		off_t offset = ((width * old_height) + 3) * sizeof(int);
+		lseek(fd, offset, SEEK_SET);
+		int path_length[nb_objects];
+		char path[nb_objects][256];
+		unsigned frames[nb_objects];
+		int properties[nb_objects][4];
+
+		for (int i = 0; i < nb_objects; ++i) {
+			verif_read = read(fd, &path_length[i], sizeof(int));
+			verification(verif_read != -1, "[--setwidth] read path length");
+
+			for (int j = 0; j <= path_length[i]; ++j) {
+				verif_read = read(fd, &path[i][j], sizeof(char));
+				verification(verif_read != -1, "[--setwidth] read path");
+			}
+
+			verif_read = read(fd, &frames[i], sizeof(unsigned));
+			verification(verif_read != -1, "[--setwidth] read nb frames");
+
+			for (int k = 0; k < 4; ++k) {
+				verif_read = read(fd, &properties[i][k], sizeof(int));
+				verification(verif_read != -1, "[--setwidth] read properties");
+			}
+		}
+
+		close(fd);
+		fd = open(argv[1], O_WRONLY|O_TRUNC, 0600);
+		int verif_write;
+
+		verif_write = write(fd, &width, sizeof(int));
+		verification(verif_write != -1, "[--setwidth] write new width");
+
+		verif_write = write(fd, &new_height, sizeof(int));
+		verification(verif_write != -1, "[--setwidth] write height");
+
+		verif_write = write(fd, &nb_objects, sizeof(int));
+		verification(verif_write != -1, "[--setwidth] write nb objects");
+
+		for (int y = 0; y < new_height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				verif_write = write(fd, &new_matrix[x][y], sizeof(int));
+				verification(verif_write != -1, "[--setwidth] write new matrix");
+			}
+		}
+
+		for (int i = 0; i < nb_objects; ++i) {
+			verif_write = write(fd, &path_length[i], sizeof(int));
+			verification(verif_write != -1, "[--setwidth] write path length");
+
+			for (int j = 0; j <= path_length[i]; ++j) {
+				verif_write = write(fd, &path[i][j], sizeof(char));
+				verification(verif_write != -1, "[--setwidth] write path");
+			}
+
+			verif_write = write(fd, &frames[i], sizeof(unsigned));
+			verification(verif_write != -1, "[--setwidth] write frames");
+
+			for (int k = 0; k < 4; ++k) {
+				verif_write = write(fd, &properties[i][k], sizeof(int));
+				verification(verif_write != -1, "[--setwidth] write properties");
+			}
+		}
+		close(fd);
+		return 0;
 	}
 	else if (strcmp(argv[2], "--setobjects") == 0){
 		//TODO
