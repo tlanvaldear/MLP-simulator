@@ -16,7 +16,7 @@ TO DO LIST:
   - [x] Sauvegarde
   - [x] Chargement
   - [x] Informations élémentaires (e.g. maputil –getinfo)
-  - [ ] Modification de la taille de la carte
+  - [x] Modification de la taille de la carte
   - [ ] Remplacement des objets d’une carte
   - [ ] Suppression des objets inutilisés
 - Gestion des temporisateurs :
