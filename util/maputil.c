@@ -1,4 +1,4 @@
-#include <fcntl.h>
+	#include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -17,7 +17,7 @@ int main (int argc, char** argv)
 	if(strcmp(argv[2], "--getwidth") == 0){
 		int fd = open(argv[1],O_RDONLY);
 		int width;
-		if (r = read(fd,&width,sizeof(int)) == 0) return 1;
+		if ((r = read(fd,&width,sizeof(int))) == 0) return 1;
 		printf("Largeur : %d\n", width);
 		close(fd);
 		return 0;
@@ -26,29 +26,39 @@ int main (int argc, char** argv)
 		int fd = open(argv[1],O_RDONLY);
 		int height;
 		lseek(fd,sizeof(int),SEEK_SET); /* On se deplace d'un entier dont on ne connait pas la valeur*/
-		if (r = read(fd,&height,sizeof(int)) == 0) return 1;
+		if ((r = read(fd,&height,sizeof(int))) == 0) return 1;
 		printf("Hauteur : %d\n",height);
+		close(fd);
+		return 0;
+	}
+	else if (strcmp(argv[2], "--getobjects") == 0){
+		int fd = open(argv[1],O_RDONLY);
+		int nb_objects;
+		lseek(fd,2*sizeof(int),SEEK_SET); //On se déplace de deux entiers pour extraire le nombre d'objets.
+		if ((r = read(fd,&nb_objects,sizeof(int))) == 0) return 1;
+		printf("Nombre d'objets : %d\n",nb_objects);
 		close(fd);
 		return 0;
 	}
 	else if (strcmp(argv[2], "--getinfo") == 0){
 		int fd = open(argv[1],O_RDONLY);
-		int width,height;
-		if (r = read(fd,&width,sizeof(int)) == 0) return 1;
-		if (r = read(fd,&height,sizeof(int)) == 0) return 1;
-		printf("Informations sur %s : \nHauteur : %d\nLargeur : %d\n", argv[1],height,width);
+		int width,height, nb_objetcs;
+		if ((r = read(fd,&width,sizeof(int))) == 0) return 1;
+		if ((r = read(fd,&height,sizeof(int))) == 0) return 1;
+		if ((r = read(fd,&nb_objetcs,sizeof(int))) == 0) return 1;
+		printf("Informations sur %s : \nHauteur : %d\nLargeur : %d\nNombre d'objets : %d\n", argv[1],height,width, nb_objetcs);
 		close(fd);
 		return 0;
 	}
 	else if (strcmp(argv[2], "--setwidth") == 0){ /*Incomplet, manque l'écriture de 1 sur la dernière colonne ! */
 		int fd = open(argv[1],O_RDWR);
 		int height;
-		char newline = "\n";
+		//char newline = "\n";
 		if (argc != 4) {fprintf(stderr, "Please enter a single number for width"); return 1;}
 		int width = atoi(argv[3]);
-		if (w = write(fd,&width,sizeof(int)) == -1) return 1;
+		if ((w = write(fd,&width,sizeof(int))) == -1) return 1;
 		lseek(fd,sizeof(int),SEEK_SET);
-		if (r = read(fd,&height,sizeof(int)) == 0) return 1;
+		if ((r = read(fd,&height,sizeof(int))) == 0) return 1;
 		lseek(fd,sizeof(int),SEEK_CUR);
 		printf("%d %d", width,height);
 		close(fd);
