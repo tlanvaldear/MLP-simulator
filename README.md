@@ -16,8 +16,8 @@ TO DO LIST:
   - [x] Sauvegarde
   - [x] Chargement
   - [x] Informations élémentaires (e.g. maputil –getinfo)
-  - [x] Modification de la taille de la carte
-  - [ ] Remplacement des objets d’une carte
+  - [x] Modification de la taille de la carte (debug à faire dans --setheight)
+  - [x] Remplacement des objets d’une carte
   - [ ] Suppression des objets inutilisés
 - Gestion des temporisateurs :
   - [ ] Réception des signaux par un thread démon
