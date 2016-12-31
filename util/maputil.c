@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 #include "../include/map.h"
 
@@ -193,8 +194,8 @@ int main (int argc, char** argv)
 		}
 		int new_height = atoi(argv[3]);
 		if(new_height < MIN_HEIGHT || new_height > MAX_HEIGHT){
-			fprintf(stderr, "Minimum width : 12\n"
-					"Maximum width : 20\n"
+			fprintf(stderr, "Minimum height : 12\n"
+					"Maximum height : 20\n"
 					"Please enter a correct height.");
 			return 1;
 		}
@@ -209,13 +210,13 @@ int main (int argc, char** argv)
 		int verif_read;
 
 		verif_read = read(fd, &width, sizeof(int));
-		verification(verif_read != -1, "[--setwidth] read old width");
+		verification(verif_read != -1, "[--setheight] read old width");
 
 		verif_read = read(fd, &old_height, sizeof(int));
-		verification(verif_read != -1, "[--setwidth] read height");
+		verification(verif_read != -1, "[--setheight] read height");
 
 		verif_read = read(fd, &nb_objects, sizeof(int));
-		verification(verif_read != -1, "[--setwidth] read nb objects");
+		verification(verif_read != -1, "[--setheight] read nb objects");
 
 
 		int new_matrix[width][new_height];
@@ -231,7 +232,7 @@ int main (int argc, char** argv)
 		for (int y = 0; y < old_height; ++y) {
 			for (int x = 0; x < width; ++x) {
 				verif_read = read(fd, &type, sizeof(int));
-				verification(verif_read != -1, "[--setwidth] read matrix");
+				verification(verif_read != -1, "[--setheight] read matrix");
 				old_matrix[x][y] = type;
 			}
 		}
@@ -264,64 +265,190 @@ int main (int argc, char** argv)
 
 		for (int i = 0; i < nb_objects; ++i) {
 			verif_read = read(fd, &path_length[i], sizeof(int));
-			verification(verif_read != -1, "[--setwidth] read path length");
+			verification(verif_read != -1, "[--setheight] read path length");
 
 			for (int j = 0; j <= path_length[i]; ++j) {
 				verif_read = read(fd, &path[i][j], sizeof(char));
-				verification(verif_read != -1, "[--setwidth] read path");
+				verification(verif_read != -1, "[--setheight] read path");
 			}
 
 			verif_read = read(fd, &frames[i], sizeof(unsigned));
-			verification(verif_read != -1, "[--setwidth] read nb frames");
+			verification(verif_read != -1, "[--setheight] read nb frames");
 
 			for (int k = 0; k < 4; ++k) {
 				verif_read = read(fd, &properties[i][k], sizeof(int));
-				verification(verif_read != -1, "[--setwidth] read properties");
+				verification(verif_read != -1, "[--setheight] read properties");
 			}
 		}
 
 		close(fd);
 		fd = open(argv[1], O_WRONLY|O_TRUNC, 0600);
+        verification(fd != -1, "[--setheight] open write/trunc");
+
 		int verif_write;
 
 		verif_write = write(fd, &width, sizeof(int));
-		verification(verif_write != -1, "[--setwidth] write new width");
+		verification(verif_write != -1, "[--setheight] write width");
 
 		verif_write = write(fd, &new_height, sizeof(int));
-		verification(verif_write != -1, "[--setwidth] write height");
+		verification(verif_write != -1, "[--setheight] write new height");
 
 		verif_write = write(fd, &nb_objects, sizeof(int));
-		verification(verif_write != -1, "[--setwidth] write nb objects");
+		verification(verif_write != -1, "[--setheight] write nb objects");
 
 		for (int y = 0; y < new_height; ++y) {
 			for (int x = 0; x < width; ++x) {
 				verif_write = write(fd, &new_matrix[x][y], sizeof(int));
-				verification(verif_write != -1, "[--setwidth] write new matrix");
+				verification(verif_write != -1, "[--setheight] write new matrix");
 			}
 		}
 
 		for (int i = 0; i < nb_objects; ++i) {
 			verif_write = write(fd, &path_length[i], sizeof(int));
-			verification(verif_write != -1, "[--setwidth] write path length");
+			verification(verif_write != -1, "[--setheight] write path length");
 
 			for (int j = 0; j <= path_length[i]; ++j) {
 				verif_write = write(fd, &path[i][j], sizeof(char));
-				verification(verif_write != -1, "[--setwidth] write path");
+				verification(verif_write != -1, "[--setheight] write path");
 			}
 
 			verif_write = write(fd, &frames[i], sizeof(unsigned));
-			verification(verif_write != -1, "[--setwidth] write frames");
+			verification(verif_write != -1, "[--setheight] write frames");
 
 			for (int k = 0; k < 4; ++k) {
 				verif_write = write(fd, &properties[i][k], sizeof(int));
-				verification(verif_write != -1, "[--setwidth] write properties");
+				verification(verif_write != -1, "[--setheight] write properties");
 			}
 		}
 		close(fd);
 		return 0;
 	}
 	else if (strcmp(argv[2], "--setobjects") == 0){
-		//TODO
+
+        int fd = open(argv[1], O_RDONLY);
+        verification(fd != -1, "[--setobjects] open read");
+
+        int verif_read;
+        int width;
+        int height;
+        int old_nb_objects;
+
+        verif_read = read(fd, &width, sizeof(int));
+        verification(verif_read != 1, "[--setobjects] read width");
+
+        verif_read = read(fd, &height, sizeof(int));
+        verification(verif_read != 1, "[--setobjects] read height");
+
+        verif_read = read(fd, &old_nb_objects, sizeof(int));
+        verification(verif_read != -1, "[--setobjects] read old nb objects");
+
+        close(fd);
+
+		int nb_args = argc - 3;
+        int new_nb_objects = nb_args/6;
+        if (nb_args%6 != 0){
+            fprintf(stderr, "Nombre d'arguments incorrect.\n"
+                    "Usage : %s <file> --setobjects { <filename> <frames> <solidity>\n"
+                    "<destructible> <collectible> <generator> }", argv[0]);
+            return 1;
+        } else if (new_nb_objects < old_nb_objects){
+            fprintf(stderr, "Le nombre de nouveaux objets doit être égal ou supérieur au nombre d'objets initial.\n"
+                    "Nombre d'objets initial : %d", old_nb_objects);
+            return 1;
+        }
+
+        int filenames_length[new_nb_objects];
+        char * filenames[new_nb_objects];
+        unsigned frames[new_nb_objects];
+        int properties[new_nb_objects][4];
+
+        for (int i = 0; i < new_nb_objects; ++i) {
+            int index = 6 * i + 3;
+
+            filenames_length[i] = strlen(argv[index]);
+
+            filenames[i] = argv[index];
+
+            frames[i] = (unsigned)atoi(argv[index+1]);
+
+            if (strcmp(argv[index+2], "solid") == 0){
+                properties[i][0] = 2;
+            } else if (strcmp(argv[index+2], "semi-solid") == 0){
+                properties[i][0] = 1;
+            } else if (strcmp(argv[index+2], "air") == 0){
+                properties[i][0] = 0;
+            } else {
+                fprintf(stderr, "Arguments incorrects.");
+                return 1;
+            }
+
+            if (strcmp(argv[index+3], "destructible") == 0){
+                properties[i][1] = 1;
+            } else if (strcmp(argv[index+3], "not-destructible") == 0){
+                properties[i][1] = 0;
+            } else {
+                fprintf(stderr, "Arguments incorrects.");
+                return 1;
+            }
+
+            if (strcmp(argv[index+4], "collectible") == 0){
+                properties[i][2] = 1;
+            } else if (strcmp(argv[index+4], "not-collectible") == 0){
+                properties[i][2] = 0;
+            } else {
+                fprintf(stderr, "Arguments incorrects.");
+                return 1;
+            }
+
+            if (strcmp(argv[index+5], "generator") == 0){
+                properties[i][3] = 1;
+            } else if (strcmp(argv[index+5], "not-generator") == 0){
+                properties[i][3] = 0;
+            } else {
+                fprintf(stderr, "Arguments incorrects.");
+                return 1;
+            }
+        }
+
+        fd = open(argv[1], O_WRONLY, 0600);
+        verification(fd != -1, "[--setobjects] open write");
+
+        int verif_write;
+
+        lseek(fd, 2 * sizeof(int), SEEK_SET);
+
+        verif_write = write(fd, &new_nb_objects, sizeof(int));
+        verification(verif_write != -1, "[--setobjects] write new nb objects");
+
+        lseek(fd, (width * height) * sizeof(int), SEEK_CUR);
+
+        for (int i = 0; i < new_nb_objects; ++i) {
+            verif_write = write(fd, &filenames_length[i], sizeof(int));
+            verification(verif_write != -1, "[--setobjects] write filename length");
+
+            for (int j = 0; j <= filenames_length[i]; ++j) {
+                verif_write = write(fd, &filenames[i][j], sizeof(char));
+                verification(verif_write != -1, "[--setobjects] write filename");
+            }
+
+            verif_write = write(fd, &frames[i], sizeof(unsigned));
+            verification(verif_write != -1, "[--setobjects] write nb frames");
+
+            for (int k = 0; k < 4; ++k) {
+                verif_write = write(fd, &properties[i][k], sizeof(int));
+                verification(verif_write != -1, "[--setobjects] write properties");
+            }
+        }
+
+        int filename_length_sum = 0;
+        for (int i = 0; i < new_nb_objects; ++i) {
+            filename_length_sum += filenames_length[i];
+        }
+        off_t max_size = (((width * height) + 3) * sizeof(int)) + ((filename_length_sum + new_nb_objects) * sizeof(char))
+                         + (new_nb_objects * sizeof(int)) + (new_nb_objects * sizeof(unsigned))
+                         + (4 * new_nb_objects * sizeof(int));
+        ftruncate(fd, max_size);
+        close(fd);
 	}
 	else{
 		fprintf(stderr,"Usage: %s <file> <option : --get(width/height/objects/info) \n\
