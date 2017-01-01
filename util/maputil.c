@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <stdbool.h>
 
 #include "../include/map.h"
 
@@ -451,7 +452,106 @@ int main (int argc, char** argv)
         ftruncate(fd, max_size);
         close(fd);
 	}
-	else{
+    else if (strcmp("--pruneobjects", argv[2]) == 0){
+
+        int verif_read;
+        int width, height, nb_objects;
+
+        int fd = open(argv[1], O_RDWR, 0600);
+        verification(fd != -1, "[--pruneobjects] open read/write");
+
+        verif_read = read(fd, &width, sizeof(int));
+        verification(verif_read != -1, "[--pruneobjects] read width");
+
+        verif_read = read(fd, &height, sizeof(int));
+        verification(verif_read != -1, "[--pruneobjects] read heigth");
+
+        verif_read = read(fd, &nb_objects, sizeof(int));
+        verification(verif_read != -1, "[--pruneobjects] read nb objects");
+
+        bool is_used[nb_objects];
+        for (int i = 0; i < nb_objects; ++i) {
+            is_used[i] = false;
+        }
+
+        int type;
+        int new_nb_objects = 0;
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                verif_read = read(fd, &type, sizeof(int));
+                verification(verif_read != -1, "[--pruneobjects] read matrix");
+                if (type != -1 && !is_used[type]){
+                    is_used[type] = true;
+                    new_nb_objects++;
+                }
+            }
+        }
+        if (new_nb_objects == nb_objects)
+            return 0;
+
+        int filename_length[nb_objects];
+        char filename[nb_objects][256];
+        unsigned frames[nb_objects];
+        int properties[nb_objects][4];
+
+        for (int i = 0; i < nb_objects; ++i) {
+            verif_read = read(fd, &filename_length[i], sizeof(int));
+            verification(verif_read != -1, "[--pruneobjects] read filename length");
+
+            for (int j = 0; j <= filename_length[i]; ++j) {
+                verif_read = read(fd, &filename[i][j], sizeof(char));
+                verification(verif_read != -1, "[--pruneobjects] read filejname");
+            }
+
+            verif_read = read(fd, &frames[i], sizeof(unsigned));
+            verification(verif_read != -1, "[--pruneobjects] read nb frames");
+
+            for (int k = 0; k < 4; ++k) {
+                verif_read = read(fd, &properties[i][k], sizeof(int));
+                verification(verif_read != -1, "[--pruneobjects] read properties");
+            }
+        }
+
+        lseek(fd, (width * height + 3) * sizeof(int), SEEK_SET);
+
+        int verif_write;
+        int filename_length_sum = 0;
+
+        for (int i = 0; i < nb_objects; ++i) {
+            if (is_used[i]){
+                verif_write = write(fd, &filename_length[i], sizeof(int));
+                verification(verif_write != -1, "[--pruneobjects] write filename length");
+                filename_length_sum += filename_length[i];
+
+                for (int j = 0; j <= filename_length[i]; ++j) {
+                    verif_write = write(fd, &filename[i][j], sizeof(char));
+                    verification(verif_write != -1, "[--pruneobjects] write filename");
+                }
+
+                verif_write = write(fd, &frames[i], sizeof(unsigned));
+                verification(verif_write != -1, "[--pruneobjects] write nb frames");
+
+                for (int k = 0; k < 4; ++k) {
+                    verif_write = write(fd, &properties[i][k], sizeof(int));
+                    verification(verif_write != -1, "[--pruneobjects] write properties");
+                }
+            }
+        }
+
+        lseek(fd, 2 * sizeof(int), SEEK_SET);
+
+        verif_write = write(fd, &new_nb_objects, sizeof(int));
+        verification(verif_write != -1, "[--pruneobjects] write new nb objects");
+
+        off_t offset = (width * height + 3) * sizeof(int)
+                       + new_nb_objects * sizeof(int)
+                       + (filename_length_sum + new_nb_objects) * sizeof(char)
+                       + new_nb_objects * sizeof(unsigned)
+                       + 4 * new_nb_objects * sizeof(int);
+        ftruncate(fd, offset);
+        close(fd);
+    }
+	else {
 		fprintf(stderr,"Usage: %s <file> <option : --get(width/height/objects/info) \n\
 					--set(width/height) (<w>/<h>)  \n\
 					--setobjects  <filename> <frames> <solidity> <destructible> <collectible> <generator> ",argv[0]);
