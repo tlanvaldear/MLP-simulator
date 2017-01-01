@@ -237,8 +237,8 @@ int main (int argc, char** argv)
 			}
 		}
 
-		int offset_height = new_height - old_height;
 		if (old_height <= new_height) {
+            int offset_height = new_height - old_height;
 			for (int y = 0; y < old_height; ++y) {
 				for (int x = 0; x < width; ++x) {
 					new_matrix[x][y + offset_height] = old_matrix[x][y];
@@ -249,6 +249,7 @@ int main (int argc, char** argv)
 				new_matrix[width - 1][y] = 1;
 			}
 		} else {
+            int offset_height = old_height - new_height;
 			for (int y = 0; y < new_height; ++y) {
 				for (int x = 0; x < width; ++x) {
 					new_matrix[x][y] = old_matrix[x][y+offset_height];
