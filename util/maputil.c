@@ -474,20 +474,34 @@ int main (int argc, char** argv)
             is_used[i] = false;
         }
 
-        int type;
+        int matrix[width][height];
         int new_nb_objects = 0;
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                verif_read = read(fd, &type, sizeof(int));
+                verif_read = read(fd, &matrix[x][y], sizeof(int));
                 verification(verif_read != -1, "[--pruneobjects] read matrix");
-                if (type != -1 && !is_used[type]){
-                    is_used[type] = true;
+                if (matrix[x][y] != -1 && !is_used[matrix[x][y]]){
+                    is_used[matrix[x][y]] = true;
                     new_nb_objects++;
                 }
             }
         }
         if (new_nb_objects == nb_objects)
             return 0;
+
+        int new_type = 0;
+        for (int i = 0; i < nb_objects; ++i) {
+            if (is_used[i]){
+                for (int y = 0; y < height; ++y) {
+                    for (int x = 0; x < width; ++x) {
+                        if (matrix[x][y] == i){
+                            matrix[x][y] = new_type;
+                        }
+                    }
+                }
+                new_type++;
+            }
+        }
 
         int filename_length[nb_objects];
         char filename[nb_objects][256];
@@ -512,9 +526,17 @@ int main (int argc, char** argv)
             }
         }
 
-        lseek(fd, (width * height + 3) * sizeof(int), SEEK_SET);
+        lseek(fd, 3 * sizeof(int), SEEK_SET);
 
         int verif_write;
+
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                verif_write = write(fd, &matrix[x][y], sizeof(int));
+                verification(verif_write != -1, "[--pruneobjects] write matrix");
+            }
+        }
+
         int filename_length_sum = 0;
 
         for (int i = 0; i < nb_objects; ++i) {
