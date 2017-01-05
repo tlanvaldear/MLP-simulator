@@ -46,7 +46,7 @@ void * demon() {
 	sigdelset(&demon_mask, SIGALRM);
 
 	while(1) {
-		timer_set(200,oui);//Test timer_set simple
+		timer_set(200,"oui");//Test timer_set simple
 		sigsuspend(&demon_mask);
 	}
 
