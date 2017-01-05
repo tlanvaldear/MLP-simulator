@@ -10,7 +10,7 @@
 #include <pthread.h>
 
 #include "timer.h"
-
+void* global_param;
 // Return number of elapsed µsec since... a long time ago
 static unsigned long get_time (void)
 {
@@ -28,9 +28,9 @@ static unsigned long get_time (void)
 
 void handler_demon(int sig) {
 	if(sig == SIGALRM)
-		printf("[%d]: reçu SIGALRM\n", pthread_self);
+		printf ("[%lu]: sdl_push_event(%p) appelée au temps %ld\n", pthread_self(), global_param, get_time ());
   else
-    printf("[%d]: reçu %d\n", pthread_self, sig);
+    printf("[%lu]: reçu %d\n", pthread_self(), sig);
 }
 
 void * demon() {
@@ -46,8 +46,7 @@ void * demon() {
 	sigdelset(&demon_mask, SIGALRM);
 
 	while(1) {
-    alarm(2);
-		//on attend de recevoir un signal
+		timer_set(200,oui);//Test timer_set simple
 		sigsuspend(&demon_mask);
 	}
 
@@ -73,15 +72,16 @@ int timer_init (void)
 
 void timer_set (Uint32 delay, void *param)
 {
-  global_param = param;
+  global_param = param;// On stocke le paramètre vers sdl_push_event
 
-  struct itimerval timer;
+  struct itimerval timer; // On crée un timer 
   timer.it_value.tv_sec = 0;
-  timer.it_value.tv_usec = delay * 1000;
+  timer.it_value.tv_usec = delay * 1000; // On le paramètre pour envoyer SIGALRM dans delay ms
   timer.it_interval.tv_sec = 0;
   timer.it_interval.tv_usec = 0;
 
-  setitimer(ITIMER_REAL, &timer, NULL);
+
+  setitimer(ITIMER_REAL, &timer, NULL); // On l'enclenche
 }
 
 #endif
