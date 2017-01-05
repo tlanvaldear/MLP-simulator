@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 600
+
 #include <SDL.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -24,10 +26,48 @@ static unsigned long get_time (void)
 
 #ifdef PADAWAN
 
+void handler_demon(int sig) {
+	if(sig == SIGALRM)
+		printf("[%d]: reçu SIGALRM\n", pthread_self);
+  else
+    printf("[%d]: reçu %d\n", pthread_self, sig);
+}
+
+void * demon() {
+	//on crée la sigaction pour traiter les signaux
+	struct sigaction s;
+	s.sa_flags = 0;
+	sigemptyset(&s.sa_mask);
+	s.sa_handler = handler_demon;
+  sigaction(SIGALRM, &s, NULL);
+	//on initialise le mask du thread demon
+	sigset_t demon_mask;
+	//on supprime SIGALARM des signaux bloqués pour le recevoir
+	sigdelset(&demon_mask, SIGALRM);
+
+	while(1) {
+    alarm(2);
+		//on attend de recevoir un signal
+		sigsuspend(&demon_mask);
+	}
+
+}
 // timer_init returns 1 if timers are fully implemented, 0 otherwise
 int timer_init (void)
 {
-  // TODO
+  //on crée un thread quelconque
+  pthread_t thread;
+  //on crée un masque
+  sigset_t blocked_mask;
+  //on peut recevoir tous les signaux
+  sigemptyset(&blocked_mask);
+  //on ajoute le signal SIGALARM dans les signaux à traiter 
+  sigaddset(&blocked_mask, SIGALRM);
+  //on bloque le signal SIGALARM pour le thread (impossible de le recevoir)
+  sigprocmask(SIG_BLOCK, &blocked_mask, NULL);
+  //on crée notre thread demon
+  pthread_create(&thread, NULL, demon, NULL);
+  
   return 0; // Implementation not ready
 }
 
