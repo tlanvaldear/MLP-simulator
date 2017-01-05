@@ -21,7 +21,7 @@ TO DO LIST:
   - [x] Suppression des objets inutilisés 
 - Gestion des temporisateurs :
   - [x] Réception des signaux par un thread démon
-  - [ ] Implémentation simple (un temporisateur à la fois)
+  - [x] Implémentation simple (un temporisateur à la fois)
   - [ ] Implémentation complète (et protocole de test)
   - [ ] Mise en service dans le jeu
   
