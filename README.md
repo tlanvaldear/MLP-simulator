@@ -18,9 +18,9 @@ TO DO LIST:
   - [x] Informations élémentaires (e.g. maputil –getinfo)
   - [x] Modification de la taille de la carte (debug à faire dans --setheight)
   - [x] Remplacement des objets d’une carte
-  - [x] Suppression des objets inutilisés (modification de la matrice à faire, je l'ai oubliée :grimacing:)
+  - [x] Suppression des objets inutilisés 
 - Gestion des temporisateurs :
-  - [ ] Réception des signaux par un thread démon
+  - [x] Réception des signaux par un thread démon
   - [ ] Implémentation simple (un temporisateur à la fois)
   - [ ] Implémentation complète (et protocole de test)
   - [ ] Mise en service dans le jeu

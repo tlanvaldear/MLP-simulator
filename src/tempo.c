@@ -1,4 +1,4 @@
-#define _GNU_SOURCE
+#define _XOPEN_SOURCE 600
 
 #include <SDL.h>
 #include <unistd.h>
@@ -10,8 +10,6 @@
 #include <pthread.h>
 
 #include "timer.h"
-
-void * global_param = NULL;
 
 // Return number of elapsed µsec since... a long time ago
 static unsigned long get_time (void)
@@ -26,34 +24,51 @@ static unsigned long get_time (void)
     return tv.tv_sec * 1000000UL + tv.tv_usec;
 }
 
-void handler(int signal){
-    printf("sdl_push_event(%p) appelée au temps %lu\n", global_param, get_time());
-}
-
-void * routine(void * arg){
-    struct sigaction sa;
-    sigset_t mask;
-
-    sa.sa_handler = handler;
-    sa.sa_flags = SA_RESTART;
-    sigfillset(&sa.sa_mask);
-    sigaction(SIGALRM, &sa, NULL);
-
-    while(1){
-        sigprocmask(0, NULL, &mask);
-        sigdelset(&mask, SIGALRM);
-        sigsuspend(&mask);
-    }
-}
-
 #ifdef PADAWAN
 
+void handler_demon(int sig) {
+	if(sig == SIGALRM)
+		printf("[%d]: reçu SIGALRM\n", pthread_self);
+  else
+    printf("[%d]: reçu %d\n", pthread_self, sig);
+}
+
+void * demon() {
+	//on crée la sigaction pour traiter les signaux
+	struct sigaction s;
+	s.sa_flags = 0;
+	sigemptyset(&s.sa_mask);
+	s.sa_handler = handler_demon;
+  sigaction(SIGALRM, &s, NULL);
+	//on initialise le mask du thread demon
+	sigset_t demon_mask;
+	//on supprime SIGALARM des signaux bloqués pour le recevoir
+	sigdelset(&demon_mask, SIGALRM);
+
+	while(1) {
+    alarm(2);
+		//on attend de recevoir un signal
+		sigsuspend(&demon_mask);
+	}
+
+}
 // timer_init returns 1 if timers are fully implemented, 0 otherwise
 int timer_init (void)
 {
-  pthread_t tid;
-  pthread_create(&tid, NULL, routine, NULL);
-  return 1; // Implementation not ready
+  //on crée un thread quelconque
+  pthread_t thread;
+  //on crée un masque
+  sigset_t blocked_mask;
+  //on peut recevoir tous les signaux
+  sigemptyset(&blocked_mask);
+  //on ajoute le signal SIGALARM dans les signaux à traiter 
+  sigaddset(&blocked_mask, SIGALRM);
+  //on bloque le signal SIGALARM pour le thread (impossible de le recevoir)
+  sigprocmask(SIG_BLOCK, &blocked_mask, NULL);
+  //on crée notre thread demon
+  pthread_create(&thread, NULL, demon, NULL);
+  
+  return 0; // Implementation not ready
 }
 
 void timer_set (Uint32 delay, void *param)
