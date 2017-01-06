@@ -386,11 +386,13 @@ int main (int argc, char** argv)
 
 		int nb_args = argc - 3;
         int new_nb_objects = nb_args/6;
+        //on vérifie que le nombre d'arguments saisi est correct
         if (nb_args%6 != 0) {
             fprintf(stderr, "Nombre d'arguments incorrect.\n"
                     "Usage : %s <file> --setobjects { <filename> <frames> <solidity>\n"
                     "<destructible> <collectible> <generator> }", argv[0]);
             return 1;
+        //on vérifie que le nouveau nombre d'objets est supérieur ou égal à l'ancien nombre d'objets
         } else if (new_nb_objects < old_nb_objects) {
             fprintf(stderr, "Le nombre de nouveaux objets doit être égal ou supérieur au nombre d'objets initial.\n"
                     "Nombre d'objets initial : %d", old_nb_objects);
@@ -401,112 +403,120 @@ int main (int argc, char** argv)
         char * filenames[new_nb_objects];
         unsigned frames[new_nb_objects];
         int properties[new_nb_objects][4];
-
+        //pour chaque objet
         for (int i = 0; i < new_nb_objects; ++i) {
             int index = 6 * i + 3;
-
+            //on récupére la longueur du nom de son fichier 
             filenames_length[i] = strlen(argv[index]);
-
+            //on récupére le nom de son fichier 
             filenames[i] = argv[index];
-
+            // on récupére son nombre de frames
             frames[i] = (unsigned)atoi(argv[index+1]);
-
-            if (strcmp(argv[index+2], "solid") == 0){
+            //on récupére son paramètre de solidité (solid/semi-solid/air)
+            if (strcmp(argv[index+2], "solid") == 0) {
                 properties[i][0] = 2;
-            } else if (strcmp(argv[index+2], "semi-solid") == 0){
+            } else if (strcmp(argv[index+2], "semi-solid") == 0) {
                 properties[i][0] = 1;
-            } else if (strcmp(argv[index+2], "air") == 0){
+            } else if (strcmp(argv[index+2], "air") == 0) {
                 properties[i][0] = 0;
             } else {
                 fprintf(stderr, "Arguments incorrects.");
                 return 1;
             }
-
-            if (strcmp(argv[index+3], "destructible") == 0){
+            //on récupére son paramètre de destruction(destructible/not-destructible)
+            if (strcmp(argv[index+3], "destructible") == 0) {
                 properties[i][1] = 1;
-            } else if (strcmp(argv[index+3], "not-destructible") == 0){
+            } else if (strcmp(argv[index+3], "not-destructible") == 0) {
                 properties[i][1] = 0;
             } else {
                 fprintf(stderr, "Arguments incorrects.");
                 return 1;
             }
-
-            if (strcmp(argv[index+4], "collectible") == 0){
+            //on récupère son paramètre de collecte(collectible/not-collectible)
+            if (strcmp(argv[index+4], "collectible") == 0) {
                 properties[i][2] = 1;
-            } else if (strcmp(argv[index+4], "not-collectible") == 0){
+            } else if (strcmp(argv[index+4], "not-collectible") == 0) {
                 properties[i][2] = 0;
             } else {
                 fprintf(stderr, "Arguments incorrects.");
                 return 1;
             }
-
-            if (strcmp(argv[index+5], "generator") == 0){
+            //on récupère son paramètre de génération(generator/not-generator)
+            if (strcmp(argv[index+5], "generator") == 0) {
                 properties[i][3] = 1;
-            } else if (strcmp(argv[index+5], "not-generator") == 0){
+            } else if (strcmp(argv[index+5], "not-generator") == 0) {
                 properties[i][3] = 0;
             } else {
                 fprintf(stderr, "Arguments incorrects.");
                 return 1;
             }
         }
-
+        //on ouvre le fichier en paramètre en écriture
         fd = open(argv[1], O_WRONLY, 0600);
         verification(fd != -1, "[--setobjects] open write");
 
-        int verif_write;
-
+        int verif_write;//variable pour vérifier le retour des appels write()s
+        //on se déplace jusqu'à la première donnée à modifier
         lseek(fd, 2 * sizeof(int), SEEK_SET);
-
+        //on écrit le nouveau nombre d'objets
         verif_write = write(fd, &new_nb_objects, sizeof(int));
         verification(verif_write != -1, "[--setobjects] write new nb objects");
-
+        //on se déplace jusqu'à la prochaine donnée à modifier
         lseek(fd, (width * height) * sizeof(int), SEEK_CUR);
-
+        //pour chaque objet
         for (int i = 0; i < new_nb_objects; ++i) {
+        	//on écrit la longueur du nom de son fichier
             verif_write = write(fd, &filenames_length[i], sizeof(int));
             verification(verif_write != -1, "[--setobjects] write filename length");
 
             for (int j = 0; j <= filenames_length[i]; ++j) {
+            	//on écrit le nom de son fichier
                 verif_write = write(fd, &filenames[i][j], sizeof(char));
                 verification(verif_write != -1, "[--setobjects] write filename");
             }
-
+            //on écrit son nombre de frames
             verif_write = write(fd, &frames[i], sizeof(unsigned));
             verification(verif_write != -1, "[--setobjects] write nb frames");
 
             for (int k = 0; k < 4; ++k) {
+            	//on écrit ses propriétés
                 verif_write = write(fd, &properties[i][k], sizeof(int));
                 verification(verif_write != -1, "[--setobjects] write properties");
             }
         }
 
         int filename_length_sum = 0;
+        //on calcule la somme de toutes les longueurs de nom de fichier
         for (int i = 0; i < new_nb_objects; ++i) {
             filename_length_sum += filenames_length[i];
         }
+        //on calcule la taille maximal de notre nouveau fichier
         off_t max_size = (((width * height) + 3) * sizeof(int)) + ((filename_length_sum + new_nb_objects) * sizeof(char))
                          + (new_nb_objects * sizeof(int)) + (new_nb_objects * sizeof(unsigned))
                          + (4 * new_nb_objects * sizeof(int));
+        //on utilise la fonction ftruncate pour agrandir la taille du fichier 
         ftruncate(fd, max_size);
+        //on ferme le fichier
         close(fd);
 	}
+	//utilisation de l'option --pruneobjects
     else if (strcmp("--pruneobjects", argv[2]) == 0){
 
         int verif_read;
         int width, height, nb_objects;
-
+        //on ouvre le fichier en paramètre en lecture et écriture
         int fd = open(argv[1], O_RDWR, 0600);
         verification(fd != -1, "[--pruneobjects] open read/write");
-
+        //on lit la largeur
         verif_read = read(fd, &width, sizeof(int));
         verification(verif_read != -1, "[--pruneobjects] read width");
-
+        //on lit la hauteur
         verif_read = read(fd, &height, sizeof(int));
         verification(verif_read != -1, "[--pruneobjects] read heigth");
-
+        //on lit le nombre d'objet différent
         verif_read = read(fd, &nb_objects, sizeof(int));
         verification(verif_read != -1, "[--pruneobjects] read nb objects");
-
+        //on initialise un booléen pour chaque objet pour son utilisation(false)
         bool is_used[nb_objects];
         for (int i = 0; i < nb_objects; ++i) {
             is_used[i] = false;
@@ -516,14 +526,17 @@ int main (int argc, char** argv)
         int new_nb_objects = 0;
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
+            	//on lit les valeurs de la matrice pour chaque coordonées
                 verif_read = read(fd, &matrix[x][y], sizeof(int));
                 verification(verif_read != -1, "[--pruneobjects] read matrix");
-                if (matrix[x][y] != -1 && !is_used[matrix[x][y]]){
+                //on change la valeur du booléen de l'objet s'il est utilisé(true)
+                if (matrix[x][y] != -1 && !is_used[matrix[x][y]]) {
                     is_used[matrix[x][y]] = true;
                     new_nb_objects++;
                 }
             }
         }
+        //on vérifie que l'on a vu tous les objets
         if (new_nb_objects == nb_objects)
             return 0;
 
@@ -545,72 +558,79 @@ int main (int argc, char** argv)
         char filename[nb_objects][256];
         unsigned frames[nb_objects];
         int properties[nb_objects][4];
-
+        //pour chaque objet 
         for (int i = 0; i < nb_objects; ++i) {
+       		//on lit la longueur du nom de son fichier
             verif_read = read(fd, &filename_length[i], sizeof(int));
             verification(verif_read != -1, "[--pruneobjects] read filename length");
-
+            //on lit le nom de son fichier
             for (int j = 0; j <= filename_length[i]; ++j) {
                 verif_read = read(fd, &filename[i][j], sizeof(char));
                 verification(verif_read != -1, "[--pruneobjects] read filejname");
             }
-
+            //on lit son nombre de frames
             verif_read = read(fd, &frames[i], sizeof(unsigned));
             verification(verif_read != -1, "[--pruneobjects] read nb frames");
 
             for (int k = 0; k < 4; ++k) {
+            	//on lit ses propriétés
                 verif_read = read(fd, &properties[i][k], sizeof(int));
                 verification(verif_read != -1, "[--pruneobjects] read properties");
             }
         }
-
         lseek(fd, 3 * sizeof(int), SEEK_SET);
 
         int verif_write;
 
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
+            	//on écrit toutes les valeurs de la matrice
                 verif_write = write(fd, &matrix[x][y], sizeof(int));
                 verification(verif_write != -1, "[--pruneobjects] write matrix");
             }
         }
 
         int filename_length_sum = 0;
-
+        //pour chaque objet
         for (int i = 0; i < nb_objects; ++i) {
-            if (is_used[i]){
+            if (is_used[i]) { 
+            	//on écrit la longueur du nom de son chemin
                 verif_write = write(fd, &filename_length[i], sizeof(int));
                 verification(verif_write != -1, "[--pruneobjects] write filename length");
                 filename_length_sum += filename_length[i];
 
                 for (int j = 0; j <= filename_length[i]; ++j) {
+                	//on écrit le nom de son chemin
                     verif_write = write(fd, &filename[i][j], sizeof(char));
                     verification(verif_write != -1, "[--pruneobjects] write filename");
                 }
-
+                //on écrit son nombre de frames
                 verif_write = write(fd, &frames[i], sizeof(unsigned));
                 verification(verif_write != -1, "[--pruneobjects] write nb frames");
 
                 for (int k = 0; k < 4; ++k) {
+                	//
                     verif_write = write(fd, &properties[i][k], sizeof(int));
                     verification(verif_write != -1, "[--pruneobjects] write properties");
                 }
             }
         }
-
+        //on se déplace jusqu'à la donnée que l'on veut modifier
         lseek(fd, 2 * sizeof(int), SEEK_SET);
-
+        //on écrit le nouveau nombre d'objet
         verif_write = write(fd, &new_nb_objects, sizeof(int));
         verification(verif_write != -1, "[--pruneobjects] write new nb objects");
-
+        //on calcule la taille de notre nouveau fichier
         off_t offset = (width * height + 3) * sizeof(int)
                        + new_nb_objects * sizeof(int)
                        + (filename_length_sum + new_nb_objects) * sizeof(char)
                        + new_nb_objects * sizeof(unsigned)
                        + 4 * new_nb_objects * sizeof(int);
+        //on appelle la fonction ftruncate pour réduire la taille du fichier(dans ce cas, on a enlevé des objets)
         ftruncate(fd, offset);
         close(fd);
     }
+    //si aucune option n'est correct alors commande mal saisi
 	else {
 		fprintf(stderr,"Usage: %s <file> <option : --get(width/height/objects/info) \n\
 					--set(width/height) (<w>/<h>)  \n\
